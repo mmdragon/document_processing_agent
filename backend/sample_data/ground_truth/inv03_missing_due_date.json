@@ -1,0 +1,44 @@
+{
+  "synthetic": true,
+  "document_id": "inv03_missing_due_date",
+  "file_name": "inv03_missing_due_date.pdf",
+  "scenario": "missing_due_date",
+  "description": "No due date is printed. Terms say Net 30, but the due date must not be inferred silently.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [
+    "missing_due_date"
+  ],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Mossgate Facilities Services",
+    "vendor_address": "9 Quarry Row, Elmstead, CO 80000",
+    "invoice_number": "MFS-88213",
+    "invoice_date": "2026-03-12",
+    "invoice_date_raw": "March 12, 2026",
+    "due_date": null,
+    "due_date_raw": null,
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "HVAC quarterly maintenance",
+        "quantity": "1",
+        "unit_price": "640.00",
+        "amount": "640.00"
+      },
+      {
+        "description": "Air filter replacement 20x25x1",
+        "quantity": "12",
+        "unit_price": "9.50",
+        "amount": "114.00"
+      }
+    ],
+    "subtotal": "754.00",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "754.00",
+    "purchase_order_number": null,
+    "payment_terms": "Net 30"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "synthetic": true,
+  "document_id": "inv09_scanned",
+  "file_name": "inv09_scanned.pdf",
+  "scenario": "scanned_image",
+  "description": "Clean image-only PDF (no text layer). Needs OCR.",
+  "render_mode": "scan",
+  "expected_extraction_method": "ocr",
+  "expected_issues": [
+    "ocr_required"
+  ],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Tidewell Catering Co.",
+    "vendor_address": "22 Saltgrass Pier, Bayport, FL 33000",
+    "invoice_number": "TCC-1189",
+    "invoice_date": "2026-02-14",
+    "invoice_date_raw": "February 14, 2026",
+    "due_date": "2026-02-28",
+    "due_date_raw": "February 28, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Lunch buffet (per person)",
+        "quantity": "35",
+        "unit_price": "16.50",
+        "amount": "577.50"
+      },
+      {
+        "description": "Coffee service",
+        "quantity": "1",
+        "unit_price": "85.00",
+        "amount": "85.00"
+      },
+      {
+        "description": "Delivery and setup",
+        "quantity": "1",
+        "unit_price": "40.00",
+        "amount": "40.00"
+      }
+    ],
+    "subtotal": "702.50",
+    "discount": null,
+    "tax": "63.23",
+    "shipping": null,
+    "total": "765.73",
+    "purchase_order_number": null,
+    "payment_terms": "Net 14"
+  }
+}

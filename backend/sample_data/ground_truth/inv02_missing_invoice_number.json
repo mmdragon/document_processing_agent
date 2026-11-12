@@ -1,0 +1,44 @@
+{
+  "synthetic": true,
+  "document_id": "inv02_missing_invoice_number",
+  "file_name": "inv02_missing_invoice_number.pdf",
+  "scenario": "missing_invoice_number",
+  "description": "No invoice number is printed anywhere on the document.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [
+    "missing_invoice_number"
+  ],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Pinecrest Print Works",
+    "vendor_address": "77 Ledger Street, Cedar Falls, WA 98000",
+    "invoice_number": null,
+    "invoice_date": "2026-03-09",
+    "invoice_date_raw": "March 9, 2026",
+    "due_date": "2026-03-24",
+    "due_date_raw": "March 24, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Business cards (box of 500)",
+        "quantity": "4",
+        "unit_price": "38.00",
+        "amount": "152.00"
+      },
+      {
+        "description": "Tri-fold brochures (pack of 250)",
+        "quantity": "2",
+        "unit_price": "115.00",
+        "amount": "230.00"
+      }
+    ],
+    "subtotal": "382.00",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "382.00",
+    "purchase_order_number": null,
+    "payment_terms": "Net 15"
+  }
+}

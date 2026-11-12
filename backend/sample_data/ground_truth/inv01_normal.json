@@ -1,0 +1,48 @@
+{
+  "synthetic": true,
+  "document_id": "inv01_normal",
+  "file_name": "inv01_normal.pdf",
+  "scenario": "normal",
+  "description": "Normal invoice with correct line items, tax and total.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Quillfeather Office Goods",
+    "vendor_address": "1200 Fernhollow Ave, Suite 4, Springhaven, OR 97000",
+    "invoice_number": "QOG-2026-0142",
+    "invoice_date": "2026-03-02",
+    "invoice_date_raw": "March 2, 2026",
+    "due_date": "2026-04-01",
+    "due_date_raw": "April 1, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Copy paper, letter (case of 10 reams)",
+        "quantity": "10",
+        "unit_price": "42.50",
+        "amount": "425.00"
+      },
+      {
+        "description": "Gel pens, black (box of 12)",
+        "quantity": "6",
+        "unit_price": "12.75",
+        "amount": "76.50"
+      },
+      {
+        "description": "Desk organizer, bamboo",
+        "quantity": "3",
+        "unit_price": "28.00",
+        "amount": "84.00"
+      }
+    ],
+    "subtotal": "585.50",
+    "discount": null,
+    "tax": "48.30",
+    "shipping": null,
+    "total": "633.80",
+    "purchase_order_number": "PO-55120",
+    "payment_terms": "Net 30"
+  }
+}

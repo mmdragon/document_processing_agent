@@ -1,0 +1,48 @@
+{
+  "synthetic": true,
+  "document_id": "inv08_tax_and_shipping",
+  "file_name": "inv08_tax_and_shipping.pdf",
+  "scenario": "tax_and_shipping",
+  "description": "Sales tax on the subtotal plus an untaxed shipping charge.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Ironbark Industrial Parts",
+    "vendor_address": "600 Foundry Road, Millhaven, OH 43000",
+    "invoice_number": "IIP-77310",
+    "invoice_date": "2026-03-03",
+    "invoice_date_raw": "March 3, 2026",
+    "due_date": "2026-04-02",
+    "due_date_raw": "April 2, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Hex bolt M10x40 (box of 50)",
+        "quantity": "8",
+        "unit_price": "18.60",
+        "amount": "148.80"
+      },
+      {
+        "description": "Flange nut M10 (box of 100)",
+        "quantity": "4",
+        "unit_price": "14.20",
+        "amount": "56.80"
+      },
+      {
+        "description": "Bearing 6204-2RS",
+        "quantity": "20",
+        "unit_price": "6.75",
+        "amount": "135.00"
+      }
+    ],
+    "subtotal": "340.60",
+    "discount": null,
+    "tax": "22.14",
+    "shipping": "35.00",
+    "total": "397.74",
+    "purchase_order_number": "PO-88731",
+    "payment_terms": "Net 30"
+  }
+}

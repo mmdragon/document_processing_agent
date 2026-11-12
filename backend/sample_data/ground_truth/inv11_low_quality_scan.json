@@ -1,0 +1,45 @@
+{
+  "synthetic": true,
+  "document_id": "inv11_low_quality_scan",
+  "file_name": "inv11_low_quality_scan.pdf",
+  "scenario": "low_quality_ocr",
+  "description": "Blurred, rotated, noisy, low-resolution scan. OCR will be unreliable.",
+  "render_mode": "low_quality_scan",
+  "expected_extraction_method": "ocr",
+  "expected_issues": [
+    "ocr_required",
+    "low_quality_scan"
+  ],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Saltmarsh Cleaning Co.",
+    "vendor_address": "5 Heron Way, Dunmore Flats, SC 29000",
+    "invoice_number": "SCC-5502",
+    "invoice_date": "2026-03-01",
+    "invoice_date_raw": "March 1, 2026",
+    "due_date": "2026-03-31",
+    "due_date_raw": "March 31, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Office deep clean (sq ft)",
+        "quantity": "2400",
+        "unit_price": "0.18",
+        "amount": "432.00"
+      },
+      {
+        "description": "Window cleaning (panes)",
+        "quantity": "48",
+        "unit_price": "3.50",
+        "amount": "168.00"
+      }
+    ],
+    "subtotal": "600.00",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "600.00",
+    "purchase_order_number": null,
+    "payment_terms": "Net 30"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "synthetic": true,
+  "document_id": "inv14_line_item_mismatch",
+  "file_name": "inv14_line_item_mismatch.pdf",
+  "scenario": "line_item_mismatch",
+  "description": "Line 1 prints 351.00 but 14 x 22.50 = 315.00. Subtotal and total are consistent with the printed (wrong) line amount.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [
+    "line_item_amount_mismatch"
+  ],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Redkite Courier Services",
+    "vendor_address": "88 Dispatch Avenue, Kestrel City, AZ 85000",
+    "invoice_number": "RCS-90412",
+    "invoice_date": "2026-03-10",
+    "invoice_date_raw": "March 10, 2026",
+    "due_date": "2026-03-25",
+    "due_date_raw": "March 25, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Same-day courier run",
+        "quantity": "14",
+        "unit_price": "22.50",
+        "amount": "351.00"
+      },
+      {
+        "description": "Weekend surcharge",
+        "quantity": "2",
+        "unit_price": "15.00",
+        "amount": "30.00"
+      }
+    ],
+    "subtotal": "381.00",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "381.00",
+    "purchase_order_number": null,
+    "payment_terms": "Net 15"
+  }
+}

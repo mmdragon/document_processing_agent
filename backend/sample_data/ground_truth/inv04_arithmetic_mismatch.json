@@ -1,0 +1,50 @@
+{
+  "synthetic": true,
+  "document_id": "inv04_arithmetic_mismatch",
+  "file_name": "inv04_arithmetic_mismatch.pdf",
+  "scenario": "arithmetic_mismatch",
+  "description": "Printed total (763.70) does not equal the subtotal (736.70).",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [
+    "total_mismatch"
+  ],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Harbor Lantern Logistics",
+    "vendor_address": "410 Wharfside Drive, Port Calder, ME 04000",
+    "invoice_number": "HLL-30917",
+    "invoice_date": "2026-02-20",
+    "invoice_date_raw": "February 20, 2026",
+    "due_date": "2026-03-22",
+    "due_date_raw": "March 22, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Pallet freight - zone 3",
+        "quantity": "2",
+        "unit_price": "310.00",
+        "amount": "620.00"
+      },
+      {
+        "description": "Liftgate service",
+        "quantity": "1",
+        "unit_price": "75.00",
+        "amount": "75.00"
+      },
+      {
+        "description": "Fuel surcharge",
+        "quantity": "1",
+        "unit_price": "41.70",
+        "amount": "41.70"
+      }
+    ],
+    "subtotal": "736.70",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "763.70",
+    "purchase_order_number": null,
+    "payment_terms": "Net 30"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "synthetic": true,
+  "document_id": "inv13_ambiguous_date",
+  "file_name": "inv13_ambiguous_date.pdf",
+  "scenario": "ambiguous_date",
+  "description": "Invoice date '04/05/2026' could be April 5 or May 4; it must be flagged, not guessed.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [
+    "ambiguous_date"
+  ],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Ashgrove Garden Supply",
+    "vendor_address": "1900 Thornfield Road, Willow Bend, IL 60000",
+    "invoice_number": "AGS-6620",
+    "invoice_date": null,
+    "invoice_date_raw": "04/05/2026",
+    "due_date": "2026-05-30",
+    "due_date_raw": "May 30, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Hardwood mulch (cubic yard)",
+        "quantity": "6",
+        "unit_price": "38.00",
+        "amount": "228.00"
+      },
+      {
+        "description": "Cedar planter box",
+        "quantity": "2",
+        "unit_price": "64.99",
+        "amount": "129.98"
+      }
+    ],
+    "subtotal": "357.98",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "357.98",
+    "purchase_order_number": null,
+    "payment_terms": "Due by date shown"
+  }
+}

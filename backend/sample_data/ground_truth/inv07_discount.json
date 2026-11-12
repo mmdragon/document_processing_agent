@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "document_id": "inv07_discount",
+  "file_name": "inv07_discount.pdf",
+  "scenario": "discount",
+  "description": "10% discount applied to the subtotal before the total.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Cobaltfern Software Studio",
+    "vendor_address": "15 Lattice Lane, Floor 2, Riverbend, MN 55000",
+    "invoice_number": "CSS-2026-007",
+    "invoice_date": "2026-01-28",
+    "invoice_date_raw": "January 28, 2026",
+    "due_date": "2026-02-27",
+    "due_date_raw": "February 27, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Annual design tool licence (per seat)",
+        "quantity": "5",
+        "unit_price": "240.00",
+        "amount": "1200.00"
+      },
+      {
+        "description": "Onboarding workshop",
+        "quantity": "1",
+        "unit_price": "450.00",
+        "amount": "450.00"
+      }
+    ],
+    "subtotal": "1650.00",
+    "discount": "165.00",
+    "tax": null,
+    "shipping": null,
+    "total": "1485.00",
+    "purchase_order_number": null,
+    "payment_terms": "Net 30"
+  }
+}

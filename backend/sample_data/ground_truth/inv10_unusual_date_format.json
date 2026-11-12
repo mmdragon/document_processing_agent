@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "document_id": "inv10_unusual_date_format",
+  "file_name": "inv10_unusual_date_format.pdf",
+  "scenario": "unusual_date_format",
+  "description": "Dates written as 'Tuesday, 3rd February 2026' and '2026/03/05'.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Glasswing Consulting Group",
+    "vendor_address": "480 Prism Court, Hollis Park, NJ 07000",
+    "invoice_number": "GCG/26/031",
+    "invoice_date": "2026-02-03",
+    "invoice_date_raw": "Tuesday, 3rd February 2026",
+    "due_date": "2026-03-05",
+    "due_date_raw": "2026/03/05",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "Process review workshop (days)",
+        "quantity": "2",
+        "unit_price": "1800.00",
+        "amount": "3600.00"
+      },
+      {
+        "description": "Travel expenses (pass-through)",
+        "quantity": "1",
+        "unit_price": "412.37",
+        "amount": "412.37"
+      }
+    ],
+    "subtotal": "4012.37",
+    "discount": null,
+    "tax": null,
+    "shipping": null,
+    "total": "4012.37",
+    "purchase_order_number": null,
+    "payment_terms": "Net 30"
+  }
+}

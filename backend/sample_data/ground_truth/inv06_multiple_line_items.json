@@ -1,0 +1,84 @@
+{
+  "synthetic": true,
+  "document_id": "inv06_multiple_line_items",
+  "file_name": "inv06_multiple_line_items.pdf",
+  "scenario": "multiple_line_items",
+  "description": "Nine line items including a fractional quantity (labor hours).",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Lumenvale Electrical Supply",
+    "vendor_address": "3301 Copperline Blvd, Brightwater, TX 75000",
+    "invoice_number": "LES-4471-B",
+    "invoice_date": "2026-03-05",
+    "invoice_date_raw": "March 5, 2026",
+    "due_date": "2026-04-04",
+    "due_date_raw": "April 4, 2026",
+    "currency": "USD",
+    "line_items": [
+      {
+        "description": "LED panel 2x4 ft, 40W",
+        "quantity": "24",
+        "unit_price": "54.90",
+        "amount": "1317.60"
+      },
+      {
+        "description": "THHN wire 12 AWG, 500 ft spool",
+        "quantity": "3",
+        "unit_price": "89.00",
+        "amount": "267.00"
+      },
+      {
+        "description": "Duplex receptacle 20A",
+        "quantity": "40",
+        "unit_price": "2.35",
+        "amount": "94.00"
+      },
+      {
+        "description": "Single-pole switch",
+        "quantity": "30",
+        "unit_price": "1.98",
+        "amount": "59.40"
+      },
+      {
+        "description": "Junction box 4 in",
+        "quantity": "25",
+        "unit_price": "3.10",
+        "amount": "77.50"
+      },
+      {
+        "description": "Wire nuts (bag of 100)",
+        "quantity": "5",
+        "unit_price": "6.45",
+        "amount": "32.25"
+      },
+      {
+        "description": "EMT conduit 1/2 in x 10 ft",
+        "quantity": "18",
+        "unit_price": "7.80",
+        "amount": "140.40"
+      },
+      {
+        "description": "Breaker 20A single pole",
+        "quantity": "12",
+        "unit_price": "11.25",
+        "amount": "135.00"
+      },
+      {
+        "description": "Labor - fixture install (hours)",
+        "quantity": "6.5",
+        "unit_price": "85.00",
+        "amount": "552.50"
+      }
+    ],
+    "subtotal": "2675.65",
+    "discount": null,
+    "tax": "187.30",
+    "shipping": null,
+    "total": "2862.95",
+    "purchase_order_number": "BR-2026-118",
+    "payment_terms": "Net 30"
+  }
+}

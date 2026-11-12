@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "document_id": "inv12_non_usd_currency",
+  "file_name": "inv12_non_usd_currency.pdf",
+  "scenario": "non_usd_currency",
+  "description": "EUR invoice with European number format (1.825,00) and 20% VAT.",
+  "render_mode": "text",
+  "expected_extraction_method": "text",
+  "expected_issues": [],
+  "duplicate_of": null,
+  "fields": {
+    "vendor_name": "Atelier Brume SARL",
+    "vendor_address": "12 rue des Brumes (fictional), 69000 Lyon, France",
+    "invoice_number": "AB-2026-0058",
+    "invoice_date": "2026-01-15",
+    "invoice_date_raw": "15.01.2026",
+    "due_date": "2026-02-14",
+    "due_date_raw": "14.02.2026",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "description": "Brochure graphic design",
+        "quantity": "1",
+        "unit_price": "1250.00",
+        "amount": "1250.00"
+      },
+      {
+        "description": "Printing (500 copies)",
+        "quantity": "500",
+        "unit_price": "1.15",
+        "amount": "575.00"
+      }
+    ],
+    "subtotal": "1825.00",
+    "discount": null,
+    "tax": "365.00",
+    "shipping": null,
+    "total": "2190.00",
+    "purchase_order_number": null,
+    "payment_terms": "30 days"
+  }
+}
