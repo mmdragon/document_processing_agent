@@ -1,80 +1,74 @@
-"""Document endpoints.
+"""Document endpoints: upload, list, detail, process."""
 
-Phase 1 skeleton: accepts an upload, checks type/size, and stores it under a
-server-generated name. Persistence, listing, and processing arrive in later phases.
-"""
-
-import uuid
-from datetime import UTC, datetime
-from pathlib import PurePath
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi import Path as PathParam
 
-from app.config import Settings, get_settings
-from app.schemas.documents import DocumentUploadResponse
+from app.dependencies import ExtractorDep, RepositoryDep, SettingsDep
+from app.processing import process_document
+from app.schemas.documents import DocumentDetail, DocumentSummary
+from app.uploads import UploadRejected, save_upload
 
 router = APIRouter(tags=["documents"])
 
-# File signatures ("magic bytes") for the types we accept.
-_SIGNATURES: dict[str, tuple[bytes, ...]] = {
-    ".pdf": (b"%PDF-",),
-    ".png": (b"\x89PNG\r\n\x1a\n",),
-    ".jpg": (b"\xff\xd8\xff",),
-    ".jpeg": (b"\xff\xd8\xff",),
-}
-_CHUNK = 64 * 1024
+DocumentId = Annotated[str, PathParam(pattern=r"^[0-9a-f]{32}$")]
 
 
 @router.post(
     "/documents",
-    response_model=DocumentUploadResponse,
+    response_model=DocumentSummary,
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_document(
-    file: UploadFile, settings: Annotated[Settings, Depends(get_settings)]
-) -> DocumentUploadResponse:
-    # Only the extension of the client-supplied name is used; the path is never trusted.
-    original_name = PurePath(file.filename or "").name
-    ext = PurePath(original_name).suffix.lower()
-    if ext not in _SIGNATURES:
-        raise HTTPException(
-            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Only PDF, PNG, or JPEG files are accepted."
-        )
-
-    document_id = uuid.uuid4().hex
-    settings.upload_dir.mkdir(parents=True, exist_ok=True)
-    dest = settings.upload_dir / f"{document_id}{ext}"
-
-    size = 0
-    header = b""
+    file: UploadFile, settings: SettingsDep, repo: RepositoryDep
+) -> DocumentSummary:
     try:
-        with dest.open("xb") as out:
-            while chunk := await file.read(_CHUNK):
-                if not header:
-                    header = chunk[:16]
-                size += len(chunk)
-                if size > settings.max_upload_bytes:
-                    raise HTTPException(
-                        status.HTTP_413_CONTENT_TOO_LARGE,
-                        f"File exceeds {settings.max_upload_bytes} bytes.",
-                    )
-                out.write(chunk)
-        if size == 0:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "File is empty.")
-        if not header.startswith(_SIGNATURES[ext]):
-            raise HTTPException(
-                status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                "File contents do not match its extension.",
-            )
+        stored = await save_upload(file, settings)
+    except UploadRejected as exc:
+        raise HTTPException(exc.status_code, {"code": exc.code, "message": exc.message}) from exc
+    try:
+        return repo.create(
+            document_id=stored.document_id,
+            original_filename=stored.original_filename,
+            stored_filename=stored.stored_path.name,
+            content_type=stored.content_type,
+            size_bytes=stored.size_bytes,
+            sha256=stored.sha256,
+            page_count=stored.page_count,
+        )
     except BaseException:
-        dest.unlink(missing_ok=True)
+        stored.stored_path.unlink(missing_ok=True)
         raise
 
-    return DocumentUploadResponse(
-        document_id=document_id,
-        original_filename=original_name,
-        content_type=file.content_type or "application/octet-stream",
-        size_bytes=size,
-        uploaded_at=datetime.now(UTC),
-    )
+
+@router.get("/documents", response_model=list[DocumentSummary])
+def list_documents(repo: RepositoryDep) -> list[DocumentSummary]:
+    return repo.list()
+
+
+@router.get("/documents/{document_id}", response_model=DocumentDetail)
+def get_document(document_id: DocumentId, repo: RepositoryDep) -> DocumentDetail:
+    detail = repo.get_detail(document_id)
+    if detail is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found.")
+    return detail
+
+
+@router.post("/documents/{document_id}/process", response_model=DocumentDetail)
+def process(
+    document_id: DocumentId,
+    settings: SettingsDep,
+    repo: RepositoryDep,
+    extractor: ExtractorDep,
+) -> DocumentDetail:
+    summary = repo.get_summary(document_id)
+    if summary is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found.")
+    if summary.status in ("processing", "reviewed"):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"Document is {summary.status}; it cannot be reprocessed."
+        )
+    stored_filename = repo.get_stored_filename(document_id)
+    assert stored_filename is not None
+    return process_document(document_id, settings.upload_dir / stored_filename, repo, extractor)
