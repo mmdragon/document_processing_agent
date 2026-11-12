@@ -1,0 +1,35 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime data: uploads and local database never go in git
+backend/data/
+*.sqlite
+*.sqlite3
+*.db
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+
+# Only synthetic sample invoices may be committed (backend/sample_data/).
+# Never commit real financial documents.
