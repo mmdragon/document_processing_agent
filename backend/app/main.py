@@ -15,7 +15,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST"],  # no PUT/DELETE endpoints exist
         allow_headers=["*"],
     )
     app.include_router(health.router, prefix="/api")

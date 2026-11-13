@@ -11,8 +11,8 @@ from pathlib import Path
 from app.extraction.fields import RuleBasedFieldExtractor
 from app.extraction.models import ExtractionError
 from app.extraction.pdf import PyMuPDFExtractor
-from app.normalization.parsers import invoice_number_key, vendor_key
 from app.repositories.documents import DocumentRepository
+from app.review import validate_and_store
 from app.schemas.documents import DocumentDetail
 from app.validation.invoice import InvoiceValidator
 
@@ -59,27 +59,21 @@ def process_document(
 
     try:
         fields = field_extractor.extract_fields(extraction)
-        v_key = vendor_key(fields.vendor_name.value)
-        i_key = invoice_number_key(fields.invoice_number.value)
-        sha = repo.get_sha256(document_id) or ""
-        duplicates = repo.find_duplicates(
-            document_id, vendor_key=v_key, invoice_key=i_key, sha256=sha
-        )
-        validation = validator.validate(
-            fields, extraction_method=extraction.method, duplicates=duplicates
+        existing = repo.get_detail(document_id)
+        corrections = existing.corrections if existing else []
+        status, validation, v_key, i_key = validate_and_store(
+            document_id,
+            repo,
+            fields=fields,
+            corrections=corrections,
+            extraction_method=extraction.method,
+            validator=validator,
         )
     except Exception as exc:
         logger.exception(
             "document %s unexpected validation error: %s", document_id, type(exc).__name__
         )
         return fail("Unexpected error while reading invoice fields.")
-
-    if not extraction.has_text:
-        status = "needs_ocr"
-    elif validation.needs_review:
-        status = "needs_review"
-    else:
-        status = "processed"
 
     repo.save_results(
         document_id,

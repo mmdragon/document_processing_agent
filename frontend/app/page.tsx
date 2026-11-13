@@ -1,19 +1,22 @@
-import HealthStatus from "@/components/HealthStatus";
+"use client";
+
+import { useState } from "react";
+import DocumentList from "@/components/DocumentList";
+import UploadPanel from "@/components/UploadPanel";
 
 export default function Home() {
+  const [refreshKey, setRefreshKey] = useState(0);
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-semibold">Document Processing Agent</h1>
-      <p className="mt-2 text-gray-600">
-        Local-first invoice extraction and validation. Use synthetic invoices only. This tool
-        never approves or sends payments.
-      </p>
-      <div className="mt-6">
-        <HealthStatus />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">Invoice review</h1>
+        <p className="mt-1 text-sm text-gray-600">
+          Upload an invoice to extract its fields and run arithmetic, required-field and
+          duplicate checks. Anything uncertain is flagged for a person to review.
+        </p>
       </div>
-      <p className="mt-8 text-sm text-gray-500">
-        Upload, review, and reports arrive in later phases.
-      </p>
-    </main>
+      <UploadPanel onChange={() => setRefreshKey((k) => k + 1)} />
+      <DocumentList refreshKey={refreshKey} />
+    </div>
   );
 }

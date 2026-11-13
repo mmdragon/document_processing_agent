@@ -34,6 +34,7 @@ class ExtractedField(BaseModel, Generic[T]):
     confidence: float = 0.0
     evidence: Evidence | None = None
     note: str | None = None
+    corrected: bool = False  # True when a reviewer supplied the value
 
     @property
     def needs_review(self) -> bool:

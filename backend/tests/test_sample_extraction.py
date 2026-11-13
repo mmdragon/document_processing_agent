@@ -76,6 +76,8 @@ def test_fields_match_ground_truth(client, gt):
     ]
     assert items == expected_items
     assert f["extraction_notes"] == []
+    first_address_line = t.vendor_address.split(", ")[0]
+    assert f["vendor_address"]["evidence"]["line"].startswith(first_address_line)
 
     # Every found field points back at the page/line it came from.
     for field in f.values():

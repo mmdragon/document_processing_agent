@@ -64,6 +64,14 @@ class InvoiceValidator:
             )
             return ValidationResult(issues=issues, checks=checks, fields_needing_review=[])
 
+        if extraction_method == "manual":
+            issues.append(
+                ValidationIssue(
+                    code="manual_entry",
+                    severity="info",
+                    message="No text was extracted; these values were entered by a reviewer.",
+                )
+            )
         if extraction_method in ("ocr", "mixed"):
             issues.append(
                 ValidationIssue(
@@ -312,7 +320,7 @@ class InvoiceValidator:
                     severity="warning",
                     message=(
                         f"Possible duplicate of '{dup.original_filename}' (uploaded "
-                        f"{dup.uploaded_at[:10]}): "
+                        f"{dup.uploaded_at[:10]} UTC): "
                         + (
                             "the same file was uploaded before."
                             if dup.reason == "identical_file"

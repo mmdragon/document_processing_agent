@@ -134,6 +134,7 @@ class RuleBasedFieldExtractor:
             )
             x0 = ln.line.cells[0].x0
             address: list[str] = []
+            first_address_line: _Line | None = None
             last_y = ln.line.y
             for nxt in first_page[idx + 1 :]:
                 if nxt.line.y - last_y > 30 or len(address) >= 4:
@@ -144,13 +145,14 @@ class RuleBasedFieldExtractor:
                 if _BLOCK_STOP.match(cell.text) or self._is_label(cell.text):
                     break
                 address.append(cell.text.strip())
+                first_address_line = first_address_line or nxt
                 last_y = nxt.line.y
             if address:
                 joined = ", ".join(address)
                 fields.vendor_address = self._found(
                     joined,
                     "\n".join(address),
-                    ln,
+                    first_address_line or ln,
                     0.8,
                     "Lines printed under the vendor name.",
                 )

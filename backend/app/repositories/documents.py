@@ -7,8 +7,15 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pydantic import TypeAdapter
+
 from app.extraction.models import ExtractionResult
-from app.schemas.documents import DocumentDetail, DocumentSummary, ProcessingStatus
+from app.schemas.documents import (
+    Correction,
+    DocumentDetail,
+    DocumentSummary,
+    ProcessingStatus,
+)
 from app.schemas.invoice import DuplicateCandidate, InvoiceFields, ValidationResult
 
 _SCHEMA = """
@@ -29,18 +36,32 @@ CREATE TABLE IF NOT EXISTS documents (
     fields_json       TEXT,
     validation_json   TEXT,
     vendor_key        TEXT,
-    invoice_key       TEXT
+    invoice_key       TEXT,
+    corrections_json  TEXT,
+    reviewed_at       TEXT,
+    review_note       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_documents_uploaded_at ON documents (uploaded_at);
 """
 
 # Columns added after Phase 3; older local databases get them via ALTER TABLE.
-_ADDED_COLUMNS = ("fields_json", "validation_json", "vendor_key", "invoice_key")
+_ADDED_COLUMNS = (
+    "fields_json",
+    "validation_json",
+    "vendor_key",
+    "invoice_key",
+    "corrections_json",
+    "reviewed_at",
+    "review_note",
+)
 
 _SUMMARY_COLS = (
     "id, original_filename, content_type, size_bytes, sha256, page_count, "
-    "uploaded_at, updated_at, status, extraction_method, error"
+    "uploaded_at, updated_at, status, extraction_method, error, reviewed_at"
 )
+
+
+_CORRECTIONS = TypeAdapter(list[Correction])
 
 
 def _now() -> str:
@@ -128,8 +149,8 @@ class DocumentRepository:
     def get_detail(self, document_id: str) -> DocumentDetail | None:
         with self._connect() as conn:
             row = conn.execute(
-                f"SELECT {_SUMMARY_COLS}, extraction_json, fields_json, validation_json "
-                "FROM documents WHERE id = ?",
+                f"SELECT {_SUMMARY_COLS}, extraction_json, fields_json, validation_json, "
+                "corrections_json, review_note FROM documents WHERE id = ?",
                 (document_id,),
             ).fetchone()
         if row is None:
@@ -141,6 +162,7 @@ class DocumentRepository:
         d["fields"] = InvoiceFields.model_validate_json(raw) if raw else None
         raw = d.pop("validation_json")
         d["validation"] = ValidationResult.model_validate_json(raw) if raw else None
+        d["corrections"] = _CORRECTIONS.validate_json(d.pop("corrections_json") or "[]")
         return DocumentDetail.model_validate(d)
 
     def get_stored_filename(self, document_id: str) -> str | None:
@@ -230,4 +252,53 @@ class DocumentRepository:
                     _now(),
                     document_id,
                 ),
+            )
+
+    def save_validation(
+        self,
+        document_id: str,
+        *,
+        status: ProcessingStatus,
+        validation: ValidationResult,
+        vendor_key: str | None,
+        invoice_key: str | None,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE documents SET status = ?, validation_json = ?, vendor_key = ?, "
+                "invoice_key = ?, updated_at = ? WHERE id = ?",
+                (
+                    status,
+                    validation.model_dump_json(),
+                    vendor_key,
+                    invoice_key,
+                    _now(),
+                    document_id,
+                ),
+            )
+
+    def append_corrections(self, document_id: str, new: list[Correction]) -> None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT corrections_json FROM documents WHERE id = ?", (document_id,)
+            ).fetchone()
+            existing = _CORRECTIONS.validate_json(row["corrections_json"] or "[]")
+            conn.execute(
+                "UPDATE documents SET corrections_json = ?, updated_at = ? WHERE id = ?",
+                (_CORRECTIONS.dump_json(existing + new).decode(), _now(), document_id),
+            )
+
+    def set_review(
+        self,
+        document_id: str,
+        *,
+        status: ProcessingStatus,
+        reviewed_at: str | None,
+        note: str | None,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE documents SET status = ?, reviewed_at = ?, review_note = ?, "
+                "updated_at = ? WHERE id = ?",
+                (status, reviewed_at, note, _now(), document_id),
             )

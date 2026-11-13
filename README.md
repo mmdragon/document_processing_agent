@@ -2,7 +2,7 @@
 
 A local-first web app for processing **synthetic** PDF invoices. You upload an invoice, and the app extracts structured fields, checks the arithmetic and required fields, flags possible duplicates, and shows a review screen.
 
-> **Status: Phase 4 (fields and validation).** Uploads are checked and stored in SQLite. Text is extracted page by page (with optional OCR), invoice fields are read with the page and line they came from, and deterministic checks run on the math, required fields, dates and possible duplicates. All 14 synthetic invoices match their ground truth. The review UI and the agent explainer come in later phases (see [docs/BUILD_PROMPTS.md](docs/BUILD_PROMPTS.md)).
+> **Status: Phase 5 (review UI).** You can upload invoices in the browser, see each extracted field next to the line it came from along with the validation results, correct values (the extracted values are kept), and mark documents reviewed. Earlier phases: Uploads are checked and stored in SQLite. Text is extracted page by page (with optional OCR), invoice fields are read with the page and line they came from, and deterministic checks run on the math, required fields, dates and possible duplicates. All 14 synthetic invoices match their ground truth. The agent explainer comes in a later phase (see [docs/BUILD_PROMPTS.md](docs/BUILD_PROMPTS.md)).
 
 **Safety:** this tool never approves payments, sends money, contacts vendors or changes source files. Use synthetic documents only, and never commit real financial documents.
 
@@ -41,7 +41,14 @@ npm install
 npm run dev
 ```
 
-The home page shows a badge saying whether the frontend can reach the backend.
+Open http://localhost:3000, then drop in a PDF from `backend/sample_data/invoices/`. It's uploaded and processed straight away, and **Open review** takes you to its review page:
+
+- **Extracted fields**: each value with its confidence and the source line (page number and text). Uncertain fields are highlighted. Use **Correct** or **Add** to enter a value: dates as `YYYY-MM-DD`, amounts as plain numbers like `1234.50`, currency as a 3-letter code. The extracted value stays visible, crossed out, next to your correction, and every change is listed in the correction history.
+- **Validation**: issues (errors, warnings, notes) and every check, with its result and the numbers it used. Validation re-runs after each correction.
+- **Source**: the original file shown inline, plus the extracted text for each page.
+- **Review**: **Mark as reviewed** (with an optional note) locks the document. **Reopen for edits** unlocks it. Marking a document reviewed records that a person checked it. It does not approve payment.
+
+For a scanned invoice without OCR, the status is `needs_ocr`. You can still type in the key fields by hand, and they'll be checked.
 
 ## Configuration
 
@@ -62,6 +69,9 @@ cd frontend && npm run lint && npx tsc --noEmit && npm run build
 | POST | `/api/documents` | Upload (multipart `file`). See the upload rules below. Returns the document summary with status `uploaded`. |
 | GET | `/api/documents` | Lists documents, newest first |
 | GET | `/api/documents/{id}` | Summary, extracted page text, invoice `fields` (each with value, raw text, status, confidence and evidence) and `validation` (issues and checks) |
+| POST | `/api/documents/{id}/corrections` | `{"corrections": [{"field", "value", "note"}]}`. Values are checked strictly (422 with `field` if one is invalid). Corrections are added to the history, then validation re-runs on the corrected values. Returns 409 if the document is reviewed or hasn't been processed yet. |
+| POST | `/api/documents/{id}/review` | `{"reviewed": true, "note"}` marks it reviewed. `{"reviewed": false}` reopens it, and the status is worked out again. |
+| GET | `/api/documents/{id}/file` | The original upload, shown in the browser (`nosniff`, `no-store`) |
 | POST | `/api/documents/{id}/process` | Runs extraction, field reading and validation. The status becomes `processed`, `needs_review`, `needs_ocr` or `failed`. Returns 409 if the document is `reviewed` or already `processing`. |
 
 Upload rules:
@@ -78,7 +88,7 @@ Processing statuses: `uploaded`, then `processing`, then one of:
 - `needs_ocr`: no text layer, and OCR isn't available.
 - `failed`: see `error`.
 
-(`reviewed` arrives in Phase 5.)
+`reviewed` is set by a person. Corrections and re-processing are blocked until the document is reopened.
 
 ## Fields and validation
 
@@ -130,5 +140,6 @@ docs/             project brief, architecture, build prompts
 - Tax rates aren't checked against the printed percentage. The low-quality scan check (`low_quality_scan`) needs OCR confidence, which isn't implemented yet.
 - The real OCR path has a test, but it's skipped unless `tesseract` is installed. Expect OCR errors on `inv11_low_quality_scan`.
 - Processing runs synchronously inside the request. If the server crashes mid-process, the document can be left in `processing` status.
-- There's no UI for uploads yet (Phase 5). Use the API docs at `/docs`.
+- Line items can't be corrected yet. Only the top-level fields can.
+- There are no user accounts. Anyone who can reach the app can review documents, and corrections aren't tied to a named person.
 - No AWS integration. The optional Phase 7 adapters will be planned separately, with cost notes, before anything is provisioned.

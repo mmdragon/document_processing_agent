@@ -1,13 +1,22 @@
-"""Document endpoints: upload, list, detail, process."""
+"""Document endpoints: upload, list, detail, process, corrections, review, file."""
 
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, UploadFile, status
 from fastapi import Path as PathParam
+from fastapi.responses import FileResponse
 
 from app.dependencies import ExtractorDep, RepositoryDep, SettingsDep
 from app.processing import process_document
-from app.schemas.documents import DocumentDetail, DocumentSummary
+from app.review import CorrectionError, build_corrections, validate_and_store
+from app.schemas.documents import (
+    CorrectionsRequest,
+    DocumentDetail,
+    DocumentSummary,
+    ReviewRequest,
+)
+from app.schemas.invoice import InvoiceFields
 from app.uploads import UploadRejected, save_upload
 
 router = APIRouter(tags=["documents"])
@@ -72,3 +81,96 @@ def process(
     stored_filename = repo.get_stored_filename(document_id)
     assert stored_filename is not None
     return process_document(document_id, settings.upload_dir / stored_filename, repo, extractor)
+
+
+@router.post("/documents/{document_id}/corrections", response_model=DocumentDetail)
+def add_corrections(
+    document_id: DocumentId, body: CorrectionsRequest, repo: RepositoryDep
+) -> DocumentDetail:
+    """Record reviewer corrections and re-run validation. Extracted values are kept."""
+    detail = _require(repo, document_id)
+    if detail.status in ("reviewed", "processing"):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"Document is {detail.status}; reopen it to edit."
+        )
+    if detail.fields is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Process the document before correcting it.")
+    try:
+        new = build_corrections(detail.fields, body.corrections)
+    except CorrectionError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            {"code": "invalid_correction", "field": exc.field, "message": exc.message},
+        ) from exc
+    repo.append_corrections(document_id, new)
+    new_status, validation, v_key, i_key = validate_and_store(
+        document_id,
+        repo,
+        fields=detail.fields,
+        corrections=detail.corrections + new,
+        extraction_method=detail.extraction_method or "none",
+    )
+    repo.save_validation(
+        document_id, status=new_status, validation=validation, vendor_key=v_key, invoice_key=i_key
+    )
+    return _require(repo, document_id)
+
+
+@router.post("/documents/{document_id}/review", response_model=DocumentDetail)
+def review(document_id: DocumentId, body: ReviewRequest, repo: RepositoryDep) -> DocumentDetail:
+    """Mark a document reviewed (a person checked the data) or reopen it.
+
+    Reviewing records a human check of the extracted data. It does not approve payment.
+    """
+    detail = _require(repo, document_id)
+    if detail.status in ("uploaded", "processing", "failed"):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"A document that is {detail.status} cannot be reviewed."
+        )
+    if body.reviewed:
+        repo.set_review(
+            document_id,
+            status="reviewed",
+            reviewed_at=datetime.now(UTC).isoformat(),
+            note=body.note,
+        )
+    else:
+        if detail.status != "reviewed":
+            raise HTTPException(status.HTTP_409_CONFLICT, "Document is not reviewed.")
+        reopened, *_ = validate_and_store(
+            document_id,
+            repo,
+            fields=detail.fields or InvoiceFields(),
+            corrections=detail.corrections,
+            extraction_method=detail.extraction_method or "none",
+        )
+        repo.set_review(document_id, status=reopened, reviewed_at=None, note=body.note)
+    return _require(repo, document_id)
+
+
+@router.get("/documents/{document_id}/file")
+def get_file(document_id: DocumentId, settings: SettingsDep, repo: RepositoryDep) -> FileResponse:
+    """Serve the original upload read-only, for side-by-side review."""
+    summary = repo.get_summary(document_id)
+    stored = repo.get_stored_filename(document_id)
+    if summary is None or stored is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found.")
+    path = settings.upload_dir / stored
+    if not path.is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Stored file is missing.")
+    return FileResponse(
+        path,
+        media_type=summary.content_type,
+        headers={
+            "Content-Disposition": f'inline; filename="{stored}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+def _require(repo, document_id: str) -> DocumentDetail:
+    detail = repo.get_detail(document_id)
+    if detail is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found.")
+    return detail
