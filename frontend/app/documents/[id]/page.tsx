@@ -18,25 +18,31 @@ type State =
   | { kind: "error"; message: string; notFound: boolean }
   | { kind: "ready"; doc: DocumentDetail };
 
+async function fetchDoc(id: string): Promise<State> {
+  try {
+    return { kind: "ready", doc: await api.get(id) };
+  } catch (e) {
+    return {
+      kind: "error",
+      message: e instanceof ApiError ? e.message : "Could not load the document.",
+      notFound: e instanceof ApiError && (e.status === 404 || e.status === 422),
+    };
+  }
+}
+
 export default function DocumentPage() {
   const { id } = useParams<{ id: string }>();
   const [state, setState] = useState<State>({ kind: "loading" });
 
-  const load = useCallback(async () => {
-    try {
-      setState({ kind: "ready", doc: await api.get(id) });
-    } catch (e) {
-      setState({
-        kind: "error",
-        message: e instanceof ApiError ? e.message : "Could not load the document.",
-        notFound: e instanceof ApiError && (e.status === 404 || e.status === 422),
-      });
-    }
-  }, [id]);
+  const load = useCallback(() => fetchDoc(id).then(setState), [id]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    fetchDoc(id).then((next) => !cancelled && setState(next));
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   if (state.kind === "loading") {
     return (

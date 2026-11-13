@@ -9,34 +9,38 @@ const KIND = {
   question: { label: "Question", className: "bg-amber-100 text-amber-900" },
 } as const;
 
-type State =
-  | { kind: "loading" }
+type Loaded =
   | { kind: "error"; message: string }
   | { kind: "ready"; explanation: Explanation };
 
+type State = { kind: "loading" } | Loaded;
+
 export default function ExplanationPanel({ doc }: { doc: DocumentDetail }) {
-  const [state, setState] = useState<State>({ kind: "loading" });
+  // Results are tagged with the document version they were fetched for, so a
+  // stale result reads as "loading" until the fetch for the new version lands.
+  const version = `${doc.document_id}@${doc.updated_at}`;
+  const [loaded, setLoaded] = useState<{ version: string; result: Loaded } | null>(null);
   const [showFacts, setShowFacts] = useState(false);
+  const state: State =
+    loaded && loaded.version === version ? loaded.result : { kind: "loading" };
 
   // Re-fetch whenever the document changes (processing, corrections, review).
   useEffect(() => {
     let cancelled = false;
-    setState({ kind: "loading" });
     api
       .explanation(doc.document_id)
-      .then((explanation) => !cancelled && setState({ kind: "ready", explanation }))
+      .then((explanation): Loaded => ({ kind: "ready", explanation }))
       .catch(
-        (e) =>
-          !cancelled &&
-          setState({
-            kind: "error",
-            message: e instanceof ApiError ? e.message : "Could not load the summary.",
-          }),
-      );
+        (e): Loaded => ({
+          kind: "error",
+          message: e instanceof ApiError ? e.message : "Could not load the summary.",
+        }),
+      )
+      .then((result) => !cancelled && setLoaded({ version, result }));
     return () => {
       cancelled = true;
     };
-  }, [doc.document_id, doc.updated_at]);
+  }, [doc.document_id, version]);
 
   const canReport = doc.fields !== null && doc.validation !== null;
 

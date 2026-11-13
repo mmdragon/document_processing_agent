@@ -11,24 +11,29 @@ type State =
   | { kind: "error"; message: string }
   | { kind: "ready"; docs: DocumentSummary[] };
 
+async function fetchDocs(): Promise<State> {
+  try {
+    return { kind: "ready", docs: await api.list() };
+  } catch (e) {
+    return {
+      kind: "error",
+      message: e instanceof ApiError ? e.message : "Could not load documents.",
+    };
+  }
+}
+
 export default function DocumentList({ refreshKey }: { refreshKey: number }) {
   const [state, setState] = useState<State>({ kind: "loading" });
 
-  const load = useCallback(async () => {
-    try {
-      const docs = await api.list();
-      setState({ kind: "ready", docs });
-    } catch (e) {
-      setState({
-        kind: "error",
-        message: e instanceof ApiError ? e.message : "Could not load documents.",
-      });
-    }
-  }, []);
+  const load = useCallback(() => fetchDocs().then(setState), []);
 
   useEffect(() => {
-    load();
-  }, [load, refreshKey]);
+    let cancelled = false;
+    fetchDocs().then((next) => !cancelled && setState(next));
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   return (
     <section className="rounded-lg border border-gray-200 bg-white shadow-sm">

@@ -15,7 +15,7 @@ All eight build phases are complete (see [docs/BUILD_PROMPTS.md](docs/BUILD_PROM
 
 | Layer | Tech |
 |---|---|
-| Frontend | Next.js 15 (App Router) + TypeScript + Tailwind |
+| Frontend | Next.js 16 (App Router) + TypeScript + Tailwind |
 | Backend | FastAPI + Pydantic, Python 3.12 managed by [uv](https://docs.astral.sh/uv/) |
 | PDF text | PyMuPDF (rows and columns rebuilt from word positions) |
 | OCR (optional) | Tesseract, used through PyMuPDF |
@@ -215,7 +215,7 @@ App errors come back as `{"detail": {"code", "message"}}` (or `{"detail": "..."}
 - **Processing runs inside the request.** If the server crashes mid-process, the document can be left in `processing`.
 - **No user accounts.** Anyone who can reach the app can review, and corrections aren't tied to a named person.
 - **The guardrails match patterns.** They catch invented amounts and dates and specific forbidden wording, but they can't judge whether a sentence is reasonable.
-- **Known dependency advisories.** `npm audit` reports PostCSS advisories in the copy bundled with Next.js 15 (1 high, 1 moderate). PostCSS only processes this project's own stylesheet at build time, so exposure is low. The fix is upgrading to Next.js 16 (a major version), which hasn't been done yet.
+- **Known dependency advisories.** `npm audit --omit=dev` reports none. The full `npm audit` still lists a moderate `minimatch` advisory in the ESLint tooling (dev-only, never shipped to the browser or server).
 - **No AWS.** [docs/AWS_PLAN.md](docs/AWS_PLAN.md) proposes optional S3, Textract, Bedrock, Step Functions, IAM and CloudWatch adapters, with costs, least-privilege IAM, an approval step for each stage, and teardown. Nothing has been provisioned.
 
 ## Layout
