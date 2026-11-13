@@ -6,9 +6,27 @@ PageMethod = Literal["text", "ocr", "none"]
 DocumentMethod = Literal["text", "ocr", "mixed", "none"]
 
 
+class TextCell(BaseModel):
+    x0: float
+    x1: float
+    text: str
+
+
+class TextLine(BaseModel):
+    """One visual row of a page; cells are separated by wide horizontal gaps."""
+
+    y: float  # vertical centre, points from the top of the page
+    cells: list[TextCell]
+
+    @property
+    def text(self) -> str:
+        return "  ".join(c.text for c in self.cells)
+
+
 class PageText(BaseModel):
     page_number: int  # 1-based, for evidence references
-    text: str
+    text: str  # rows joined by newlines, cells by two spaces
+    lines: list[TextLine] = []
     char_count: int
     method: PageMethod
     has_images: bool

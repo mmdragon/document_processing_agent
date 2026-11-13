@@ -16,7 +16,9 @@ import pymupdf
 class OcrEngine(Protocol):
     name: str
 
-    def page_text(self, page: pymupdf.Page) -> str: ...
+    def page_words(self, page: pymupdf.Page) -> list[tuple]:
+        """Return PyMuPDF-style word tuples (x0, y0, x1, y1, word, ...)."""
+        ...
 
 
 class TesseractOcr:
@@ -30,9 +32,9 @@ class TesseractOcr:
     def is_installed() -> bool:
         return shutil.which("tesseract") is not None
 
-    def page_text(self, page: pymupdf.Page) -> str:
+    def page_words(self, page: pymupdf.Page) -> list[tuple]:
         textpage = page.get_textpage_ocr(language=self.language, dpi=self.dpi, full=True)
-        return page.get_text("text", textpage=textpage, sort=True).strip()
+        return page.get_text("words", textpage=textpage, sort=True)
 
 
 def get_ocr_engine(enabled: bool, language: str) -> OcrEngine | None:

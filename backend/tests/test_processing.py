@@ -20,7 +20,8 @@ def test_text_pdf_is_extracted_with_page_numbers(client):
     body = upload_and_process(
         client, "inv.pdf", make_pdf(TEXT, "Second page with enough text here")
     )
-    assert body["status"] == "extracted"
+    # Text only, no invoice structure -> fields missing -> needs review.
+    assert body["status"] == "needs_review"
     assert body["extraction_method"] == "text"
     ex = body["extraction"]
     assert ex["page_count"] == 2
@@ -97,10 +98,14 @@ class FakeOcr:
     def __init__(self, text="OCR RECOGNISED TEXT FOR THIS PAGE", fail=False):
         self.text, self.fail = text, fail
 
-    def page_text(self, page):
+    def page_words(self, page):
         if self.fail:
             raise RuntimeError("boom")
-        return self.text
+        words, x = [], 72.0
+        for w in self.text.split():
+            words.append((x, 100.0, x + 6 * len(w), 112.0, w, 0, 0, 0))
+            x += 6 * len(w) + 3
+        return words
 
 
 def write(tmp_path, data, name="doc.pdf"):

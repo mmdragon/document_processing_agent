@@ -30,3 +30,5 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+# Pydantic generic models keep the explicit Generic[T] form.
+ignore = ["UP046"]

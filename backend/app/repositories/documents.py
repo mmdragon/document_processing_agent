@@ -9,6 +9,7 @@ from pathlib import Path
 
 from app.extraction.models import ExtractionResult
 from app.schemas.documents import DocumentDetail, DocumentSummary, ProcessingStatus
+from app.schemas.invoice import DuplicateCandidate, InvoiceFields, ValidationResult
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
@@ -24,10 +25,17 @@ CREATE TABLE IF NOT EXISTS documents (
     status            TEXT NOT NULL,
     extraction_method TEXT,
     error             TEXT,
-    extraction_json   TEXT
+    extraction_json   TEXT,
+    fields_json       TEXT,
+    validation_json   TEXT,
+    vendor_key        TEXT,
+    invoice_key       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_documents_uploaded_at ON documents (uploaded_at);
 """
+
+# Columns added after Phase 3; older local databases get them via ALTER TABLE.
+_ADDED_COLUMNS = ("fields_json", "validation_json", "vendor_key", "invoice_key")
 
 _SUMMARY_COLS = (
     "id, original_filename, content_type, size_bytes, sha256, page_count, "
@@ -45,6 +53,14 @@ class DocumentRepository:
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
+            existing = {r["name"] for r in conn.execute("PRAGMA table_info(documents)")}
+            for col in _ADDED_COLUMNS:
+                if col not in existing:
+                    conn.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_documents_dupkey "
+                "ON documents (vendor_key, invoice_key)"
+            )
 
     @contextmanager
     def _connect(self):
@@ -112,7 +128,8 @@ class DocumentRepository:
     def get_detail(self, document_id: str) -> DocumentDetail | None:
         with self._connect() as conn:
             row = conn.execute(
-                f"SELECT {_SUMMARY_COLS}, extraction_json FROM documents WHERE id = ?",
+                f"SELECT {_SUMMARY_COLS}, extraction_json, fields_json, validation_json "
+                "FROM documents WHERE id = ?",
                 (document_id,),
             ).fetchone()
         if row is None:
@@ -120,6 +137,10 @@ class DocumentRepository:
         d = self._summary_dict(row)
         raw = d.pop("extraction_json")
         d["extraction"] = ExtractionResult.model_validate_json(raw) if raw else None
+        raw = d.pop("fields_json")
+        d["fields"] = InvoiceFields.model_validate_json(raw) if raw else None
+        raw = d.pop("validation_json")
+        d["validation"] = ValidationResult.model_validate_json(raw) if raw else None
         return DocumentDetail.model_validate(d)
 
     def get_stored_filename(self, document_id: str) -> str | None:
@@ -136,23 +157,76 @@ class DocumentRepository:
                 (status, _now(), document_id),
             )
 
-    def save_extraction(
+    def get_sha256(self, document_id: str) -> str | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT sha256 FROM documents WHERE id = ?", (document_id,)
+            ).fetchone()
+        return row["sha256"] if row else None
+
+    def find_duplicates(
+        self,
+        document_id: str,
+        *,
+        vendor_key: str | None,
+        invoice_key: str | None,
+        sha256: str,
+    ) -> list[DuplicateCandidate]:
+        """Other documents with the same vendor + invoice number, or the identical file."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, original_filename, uploaded_at, sha256, fields_json, "
+                "(vendor_key = ? AND invoice_key = ?) AS same_key "
+                "FROM documents WHERE id != ? AND status != 'failed' AND ("
+                "  (vendor_key IS NOT NULL AND invoice_key IS NOT NULL "
+                "   AND vendor_key = ? AND invoice_key = ?) OR sha256 = ?"
+                ") ORDER BY uploaded_at",
+                (vendor_key, invoice_key, document_id, vendor_key, invoice_key, sha256),
+            ).fetchall()
+        result = []
+        for r in rows:
+            fields = (
+                InvoiceFields.model_validate_json(r["fields_json"]) if r["fields_json"] else None
+            )
+            result.append(
+                DuplicateCandidate(
+                    reason="same_vendor_and_number" if r["same_key"] else "identical_file",
+                    document_id=r["id"],
+                    original_filename=r["original_filename"],
+                    uploaded_at=r["uploaded_at"],
+                    vendor_name=fields.vendor_name.value if fields else None,
+                    invoice_number=fields.invoice_number.value if fields else None,
+                    sha256=r["sha256"],
+                )
+            )
+        return result
+
+    def save_results(
         self,
         document_id: str,
         *,
         status: ProcessingStatus,
         extraction: ExtractionResult | None,
+        fields: InvoiceFields | None,
+        validation: ValidationResult | None,
+        vendor_key: str | None,
+        invoice_key: str | None,
         error: str | None,
     ) -> None:
         with self._connect() as conn:
             conn.execute(
                 "UPDATE documents SET status = ?, extraction_method = ?, error = ?, "
-                "extraction_json = ?, updated_at = ? WHERE id = ?",
+                "extraction_json = ?, fields_json = ?, validation_json = ?, vendor_key = ?, "
+                "invoice_key = ?, updated_at = ? WHERE id = ?",
                 (
                     status,
                     extraction.method if extraction else None,
                     error,
                     extraction.model_dump_json() if extraction else None,
+                    fields.model_dump_json() if fields else None,
+                    validation.model_dump_json() if validation else None,
+                    vendor_key,
+                    invoice_key,
                     _now(),
                     document_id,
                 ),
