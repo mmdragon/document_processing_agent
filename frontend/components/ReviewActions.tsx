@@ -48,7 +48,7 @@ export default function ReviewActions({ doc, onProcess, onReview }: Props) {
           {openIssues > 0 && (
             <span className="font-medium text-amber-800">
               {" "}
-              {openIssues} open issue{openIssues === 1 ? "" : "s"} remain.
+              {openIssues} open {openIssues === 1 ? "issue remains" : "issues remain"}.
             </span>
           )}
         </p>

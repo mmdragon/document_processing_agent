@@ -2,7 +2,7 @@
 
 A local-first web app for processing **synthetic** PDF invoices. You upload an invoice, and the app extracts structured fields, checks the arithmetic and required fields, flags possible duplicates, and shows a review screen.
 
-> **Status: Phase 5 (review UI).** You can upload invoices in the browser, see each extracted field next to the line it came from along with the validation results, correct values (the extracted values are kept), and mark documents reviewed. Earlier phases: Uploads are checked and stored in SQLite. Text is extracted page by page (with optional OCR), invoice fields are read with the page and line they came from, and deterministic checks run on the math, required fields, dates and possible duplicates. All 14 synthetic invoices match their ground truth. The agent explainer comes in a later phase (see [docs/BUILD_PROMPTS.md](docs/BUILD_PROMPTS.md)).
+> **Status: Phase 6 (agent explainer).** Each document gets a plain-language summary that labels facts, interpretations and questions separately, and a downloadable review report. The summary comes from a deterministic, template-based explainer (no model, no cost). Guardrails check every summary. Phase 5: you can upload invoices in the browser, see each extracted field next to the line it came from along with the validation results, correct values (the extracted values are kept), and mark documents reviewed. Earlier phases: Uploads are checked and stored in SQLite. Text is extracted page by page (with optional OCR), invoice fields are read with the page and line they came from, and deterministic checks run on the math, required fields, dates and possible duplicates. All 14 synthetic invoices match their ground truth. Optional AWS adapters come in a later phase (see [docs/BUILD_PROMPTS.md](docs/BUILD_PROMPTS.md)).
 
 **Safety:** this tool never approves payments, sends money, contacts vendors or changes source files. Use synthetic documents only, and never commit real financial documents.
 
@@ -71,6 +71,8 @@ cd frontend && npm run lint && npx tsc --noEmit && npm run build
 | GET | `/api/documents/{id}` | Summary, extracted page text, invoice `fields` (each with value, raw text, status, confidence and evidence) and `validation` (issues and checks) |
 | POST | `/api/documents/{id}/corrections` | `{"corrections": [{"field", "value", "note"}]}`. Values are checked strictly (422 with `field` if one is invalid). Corrections are added to the history, then validation re-runs on the corrected values. Returns 409 if the document is reviewed or hasn't been processed yet. |
 | POST | `/api/documents/{id}/review` | `{"reviewed": true, "note"}` marks it reviewed. `{"reviewed": false}` reopens it, and the status is worked out again. |
+| GET | `/api/documents/{id}/explanation` | Plain-language summary: a `summary`, sections of `fact` and `interpretation` items, `questions` for the reviewer, `next_steps`, which explainer wrote it, whether a model wrote it, and the guardrail result. Read-only. |
+| GET | `/api/documents/{id}/report?format=json\|markdown` | Review report: field values after corrections, each with its source (extracted, corrected, missing or unresolved) and evidence, plus line items, issues, checks, corrections and the summary. Markdown is downloaded as `review-<id>.md`. Returns 409 until the document has been processed. |
 | GET | `/api/documents/{id}/file` | The original upload, shown in the browser (`nosniff`, `no-store`) |
 | POST | `/api/documents/{id}/process` | Runs extraction, field reading and validation. The status becomes `processed`, `needs_review`, `needs_ocr` or `failed`. Returns 409 if the document is `reviewed` or already `processing`. |
 
@@ -114,6 +116,35 @@ Money comparisons allow a difference of up to 0.01. A possible duplicate is only
 
 The planned endpoints (list, detail, process, review, report) are listed in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Agent explainer
+
+The explainer (`backend/app/agents/`) only **describes** what the deterministic pipeline already found. It can:
+- explain the extracted fields (with their source lines)
+- summarize the check results
+- describe possible duplicates found among earlier local documents
+- ask the reviewer about anything ambiguous
+- suggest next review steps
+
+It has no tools and causes no side effects. It can't approve payment, send money, contact vendors, change source files, or change any stored value.
+
+Every output goes through guardrails (`app/agents/guardrails.py`). They reject:
+- any money amount or ISO date that doesn't already appear in the document's data, such as a due date calculated from "Net 30"
+- any use of "fraud" that isn't explicitly negated
+- wording that approves, authorizes or sends payment
+- describing a duplicate as certain rather than possible
+
+If a future model-based explainer fails these checks or crashes, the response falls back to the template explainer and records why (`guardrails.fallback_used`).
+
+`EXPLAINER_MODE=mock` is the only mode implemented. Any other value logs a warning and uses the mock.
+
+### Optional hosted model (not enabled)
+
+The `AgentExplainer` interface allows a model-backed explainer to be added later. Before turning one on:
+- **Credentials:** an API key (Anthropic) or an AWS account with Bedrock model access, stored only in `backend/.env`. Never commit it, and never send it to the frontend.
+- **Cost:** you pay per input and output token. A summary call here sends around 2–4K tokens of extracted text, fields and check results, and gets back a few hundred tokens. That's a fraction of a cent to a few cents per document, depending on the model. Re-generating on every page view multiplies this, so a real adapter should cache results per document version. Check current prices on the provider's pricing page; free tiers don't cover sustained use.
+- **Data:** the document's text would be sent to the provider. Only do that with synthetic documents, or under a data agreement you've approved.
+- **Safety:** the same guardrails and mock fallback apply unchanged.
+
 ## Sample data
 
 `backend/sample_data/` holds 14 synthetic invoice PDFs with a matching ground-truth JSON for each. Regenerate them with `cd backend && uv run python scripts/generate_invoices.py`. See [backend/sample_data/README.md](backend/sample_data/README.md) for the scenarios.
@@ -141,5 +172,7 @@ docs/             project brief, architecture, build prompts
 - The real OCR path has a test, but it's skipped unless `tesseract` is installed. Expect OCR errors on `inv11_low_quality_scan`.
 - Processing runs synchronously inside the request. If the server crashes mid-process, the document can be left in `processing` status.
 - Line items can't be corrected yet. Only the top-level fields can.
+- The summary is produced fresh on each request, not stored. That's fine for the template explainer, but a model-based one would need caching.
+- The guardrails match patterns. They catch invented amounts and dates, plus specific forbidden wording, but they can't judge whether a sentence is reasonable.
 - There are no user accounts. Anyone who can reach the app can review documents, and corrections aren't tied to a named person.
 - No AWS integration. The optional Phase 7 adapters will be planned separately, with cost notes, before anything is provisioned.

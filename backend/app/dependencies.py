@@ -2,6 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.agents.models import AgentExplainer
+from app.agents.service import get_explainer as _explainer_for_mode
 from app.config import Settings, get_settings
 from app.extraction.ocr import get_ocr_engine
 from app.extraction.pdf import PyMuPDFExtractor
@@ -22,5 +24,10 @@ def get_extractor(settings: SettingsDep) -> PyMuPDFExtractor:
     )
 
 
+def get_explainer(settings: SettingsDep) -> AgentExplainer:
+    return _explainer_for_mode(settings.explainer_mode)
+
+
 RepositoryDep = Annotated[DocumentRepository, Depends(get_repository)]
+ExplainerDep = Annotated[AgentExplainer, Depends(get_explainer)]
 ExtractorDep = Annotated[PyMuPDFExtractor, Depends(get_extractor)]

@@ -128,6 +128,25 @@ export type DocumentDetail = DocumentSummary & {
   review_note: string | null;
 };
 
+export type ExplanationItem = {
+  kind: "fact" | "interpretation" | "question";
+  text: string;
+  refs: string[];
+  evidence: Evidence[];
+};
+
+export type Explanation = {
+  summary: string;
+  sections: { title: string; items: ExplanationItem[] }[];
+  questions: ExplanationItem[];
+  next_steps: string[];
+  explainer: string;
+  model_generated: boolean;
+  disclaimer: string;
+  guardrails: { passed: boolean; violations: string[]; fallback_used: boolean };
+  generated_at: string;
+};
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -189,5 +208,8 @@ export const api = {
     request<DocumentDetail>(`/api/documents/${id}/corrections`, json({ corrections })),
   review: (id: string, reviewed: boolean, note?: string) =>
     request<DocumentDetail>(`/api/documents/${id}/review`, json({ reviewed, note: note || null })),
+  explanation: (id: string) => request<Explanation>(`/api/documents/${id}/explanation`),
   fileUrl: (id: string) => `${API_BASE_URL}/api/documents/${id}/file`,
+  reportUrl: (id: string, format: "json" | "markdown" = "markdown") =>
+    `${API_BASE_URL}/api/documents/${id}/report?format=${format}`,
 };

@@ -1,14 +1,17 @@
 """Document endpoints: upload, list, detail, process, corrections, review, file."""
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, UploadFile, status
 from fastapi import Path as PathParam
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 
-from app.dependencies import ExtractorDep, RepositoryDep, SettingsDep
+from app.agents.models import Explanation
+from app.agents.service import explain_document
+from app.dependencies import ExplainerDep, ExtractorDep, RepositoryDep, SettingsDep
 from app.processing import process_document
+from app.reporting import ReviewReport, build_report, to_markdown
 from app.review import CorrectionError, build_corrections, validate_and_store
 from app.schemas.documents import (
     CorrectionsRequest,
@@ -167,6 +170,44 @@ def get_file(document_id: DocumentId, settings: SettingsDep, repo: RepositoryDep
             "Cache-Control": "no-store",
         },
     )
+
+
+@router.get("/documents/{document_id}/explanation", response_model=Explanation)
+def explanation(
+    document_id: DocumentId, repo: RepositoryDep, explainer: ExplainerDep
+) -> Explanation:
+    """Plain-language summary of the extracted values and check results.
+
+    Facts, interpretations and questions are labelled separately. Read-only.
+    """
+    return explain_document(_require(repo, document_id), explainer)
+
+
+@router.get(
+    "/documents/{document_id}/report",
+    response_model=ReviewReport,
+    responses={200: {"content": {"text/markdown": {}}}},
+)
+def report(
+    document_id: DocumentId,
+    repo: RepositoryDep,
+    explainer: ExplainerDep,
+    format: Literal["json", "markdown"] = "json",
+):
+    detail = _require(repo, document_id)
+    if detail.fields is None or detail.validation is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Process the document before reporting.")
+    built = build_report(detail, explain_document(detail, explainer))
+    if format == "markdown":
+        return PlainTextResponse(
+            to_markdown(built),
+            media_type="text/markdown; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="review-{document_id}.md"',
+                "Cache-Control": "no-store",
+            },
+        )
+    return built
 
 
 def _require(repo, document_id: str) -> DocumentDetail:

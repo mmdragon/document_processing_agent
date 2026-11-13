@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import ExplanationPanel from "@/components/ExplanationPanel";
 import FieldsTable from "@/components/FieldsTable";
 import LineItemsTable from "@/components/LineItemsTable";
 import ReviewActions from "@/components/ReviewActions";
@@ -124,6 +125,7 @@ export default function DocumentPage() {
               setDoc(await api.review(doc.document_id, reviewed, note))
             }
           />
+          {doc.validation && <ExplanationPanel doc={doc} />}
           {doc.validation && <ValidationPanel validation={doc.validation} />}
           {doc.corrections.length > 0 && (
             <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
